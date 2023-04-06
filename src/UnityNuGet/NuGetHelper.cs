@@ -6,7 +6,7 @@ using NuGet.Protocol.Core.Types;
 
 namespace UnityNuGet
 {
-    static class NuGetHelper
+    public static class NuGetHelper
     {
         public static IEnumerable<(FrameworkSpecificGroup, RegistryTargetFramework)> GetClosestFrameworkSpecificGroups(IEnumerable<FrameworkSpecificGroup> versions, IEnumerable<RegistryTargetFramework> targetFrameworks)
         {

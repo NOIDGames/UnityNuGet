@@ -33,6 +33,6 @@ namespace UnityNuGet
         public string? Category { get; set; }
 
         [JsonProperty("dependencies")]
-        public Dictionary<string, string> Dependencies { get; }
+        public Dictionary<string, string> Dependencies { get; set; }
     }
 }

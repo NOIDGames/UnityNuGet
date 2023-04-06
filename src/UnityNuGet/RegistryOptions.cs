@@ -40,6 +40,6 @@ namespace UnityNuGet
         public string[]? DefineConstraints { get; set; }
 
         [JsonIgnore]
-        internal NuGetFramework? Framework { get; set; }
+        public NuGetFramework? Framework { get; set; }
     }
 }
