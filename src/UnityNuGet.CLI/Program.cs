@@ -11,6 +11,7 @@ var scope =
     new Option<string>(name: "--scope", description: "Scope prefix for the name", getDefaultValue: () => "org.nuget");
 var minUnityVersion =
     new Option<string>(name: "--unity", description: "Minimum unity version", getDefaultValue: () => "2022.2");
+var configfile = new Option<string?>("--configfile", description: "The NuGet configuration file to use.");
 var packageName = new Argument<string>(name: "name", description: "Nuget package name");
 var packageVersion = new Argument<string>(name: "version", description: "Nuget package version");
 
@@ -22,15 +23,21 @@ RootCommand rootCommand = new("Nuget -> UPM package converter");
 rootCommand.AddOption(output);
 rootCommand.AddOption(scope);
 rootCommand.AddOption(minUnityVersion);
+rootCommand.AddOption(configfile);
 rootCommand.AddArgument(packageName);
 rootCommand.AddArgument(packageVersion);
 
 rootCommand.SetHandler(
-    async (outDir, scope, unityVersion, packageName, packageVersion) =>
+    async (outDir, scope, unityVersion, config, packageName, packageVersion) =>
     {
         SourceCacheContext cacheContext = new();
         NuGetConsoleLogger logger = new();
-        var nugetSettings = Settings.LoadDefaultSettings(root: null);
+        string? root = config switch {
+            null => null,
+            string r when Path.IsPathRooted(r) => "/",
+            _ => ".",
+        };
+        var nugetSettings = Settings.LoadDefaultSettings(root: root, configFileName: config, machineWideSettings: null);
 
         Func<string, string> convertName = name => $"{scope}.{name.ToLowerInvariant()}";
         var npmPackageId = convertName(packageName);
@@ -38,7 +45,6 @@ rootCommand.SetHandler(
         logger.LogInformation("Searching for NuGet package...");
 
         var repositories =
-
             (new SourceRepositoryProvider(new PackageSourceProvider(nugetSettings), Repository.Provider.GetCoreV3()))
                 .GetRepositories();
 
@@ -94,6 +100,6 @@ rootCommand.SetHandler(
             }
         }
     },
-    output, scope, minUnityVersion, packageName, packageVersion);
+    output, scope, minUnityVersion, configfile, packageName, packageVersion);
 
 return rootCommand.InvokeAsync(args).Result;
