@@ -14,6 +14,10 @@ var minUnityVersion =
 var configfile = new Option<string?>("--configfile", description: "The NuGet configuration file to use.");
 var packageName = new Argument<string>(name: "name", description: "Nuget package name");
 var packageVersion = new Argument<string>(name: "version", description: "Nuget package version");
+var defineConstraints =
+    new Option<List<string>>(name: "--define-constraints", description: "Add extra defineConstraints to the assembly") {
+        Arity = ArgumentArity.ZeroOrMore,
+    };
 
 var targetFrameworks = new RegistryTargetFramework[] {
     new() { Name = "netstandard2.1", DefineConstraints = new string[] {}, Framework = CommonFrameworks.NetStandard21 },
@@ -24,11 +28,12 @@ rootCommand.AddOption(output);
 rootCommand.AddOption(scope);
 rootCommand.AddOption(minUnityVersion);
 rootCommand.AddOption(configfile);
+rootCommand.AddOption(defineConstraints);
 rootCommand.AddArgument(packageName);
 rootCommand.AddArgument(packageVersion);
 
 rootCommand.SetHandler(
-    async (outDir, scope, unityVersion, config, packageName, packageVersion) =>
+    async (outDir, scope, unityVersion, config, packageName, packageVersion, defineConstraints) =>
     {
         SourceCacheContext cacheContext = new();
         NuGetConsoleLogger logger = new();
@@ -86,7 +91,8 @@ rootCommand.SetHandler(
             SettingsUtility.GetGlobalPackagesFolder(nugetSettings), logger, CancellationToken.None);
 
         logger.LogInformation($"Converting NuGet package {nugetMetadata.Identity}");
-        var result = await converter.BuildUPM(nugetMetadata.Identity, downloadResult.PackageReader, manifest);
+        var result = await converter.BuildUPM(nugetMetadata.Identity, downloadResult.PackageReader, manifest,
+                                              extraDefineConstraints: defineConstraints);
         if (result is not null)
         {
             logger.LogInformation($"Wrote: {result}");
@@ -100,6 +106,6 @@ rootCommand.SetHandler(
             }
         }
     },
-    output, scope, minUnityVersion, configfile, packageName, packageVersion);
+    output, scope, minUnityVersion, configfile, packageName, packageVersion, defineConstraints);
 
 return rootCommand.InvokeAsync(args).Result;
