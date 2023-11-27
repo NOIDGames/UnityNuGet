@@ -18,9 +18,12 @@ var defineConstraints =
     new Option<List<string>>(name: "--define-constraints", description: "Add extra defineConstraints to the assembly") {
         Arity = ArgumentArity.ZeroOrMore,
     };
+var analyzer = new Option<bool>(name: "--analyzer", description: "The package contains a Roslyn analyzer",
+                                getDefaultValue: () => false);
 
 var targetFrameworks = new RegistryTargetFramework[] {
-    new() { Name = "netstandard2.1", DefineConstraints = new string[] {}, Framework = CommonFrameworks.NetStandard21 },
+    new() { Name = "netstandard2.1", DefineConstraints = Array.Empty<string>(),
+            Framework = CommonFrameworks.NetStandard21 },
 };
 
 RootCommand rootCommand = new("Nuget -> UPM package converter");
@@ -29,11 +32,12 @@ rootCommand.AddOption(scope);
 rootCommand.AddOption(minUnityVersion);
 rootCommand.AddOption(configfile);
 rootCommand.AddOption(defineConstraints);
+rootCommand.AddOption(analyzer);
 rootCommand.AddArgument(packageName);
 rootCommand.AddArgument(packageVersion);
 
 rootCommand.SetHandler(
-    async (outDir, scope, unityVersion, config, packageName, packageVersion, defineConstraints) =>
+    async (outDir, scope, unityVersion, config, packageName, packageVersion, defineConstraints, analyzer) =>
     {
         SourceCacheContext cacheContext = new();
         NuGetConsoleLogger logger = new();
@@ -50,7 +54,7 @@ rootCommand.SetHandler(
         logger.LogInformation("Searching for NuGet package...");
 
         var repositories =
-            (new SourceRepositoryProvider(new PackageSourceProvider(nugetSettings), Repository.Provider.GetCoreV3()))
+            new SourceRepositoryProvider(new PackageSourceProvider(nugetSettings), Repository.Provider.GetCoreV3())
                 .GetRepositories();
 
         IPackageSearchMetadata? nugetMetadata = null;
@@ -92,7 +96,7 @@ rootCommand.SetHandler(
 
         logger.LogInformation($"Converting NuGet package {nugetMetadata.Identity}");
         var result = await converter.BuildUPM(nugetMetadata.Identity, downloadResult.PackageReader, manifest,
-                                              extraDefineConstraints: defineConstraints);
+                                              extraDefineConstraints: defineConstraints, isAnalyzer: analyzer);
         if (result is not null)
         {
             logger.LogInformation($"Wrote: {result}");
@@ -106,6 +110,6 @@ rootCommand.SetHandler(
             }
         }
     },
-    output, scope, minUnityVersion, configfile, packageName, packageVersion, defineConstraints);
+    output, scope, minUnityVersion, configfile, packageName, packageVersion, defineConstraints, analyzer);
 
 return rootCommand.InvokeAsync(args).Result;
